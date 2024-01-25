@@ -163,9 +163,61 @@ class TestProductRoutes(TestCase):
         response = self.client.post(BASE_URL, data={}, content_type="plain/text")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    #
-    # ADD YOUR TEST CASES HERE
-    #
+    # GET
+
+    def test_get_product(self):
+        """GET Request for a single product"""
+        product = self._create_products(1)[0]
+        response = self.client.get(f"{BASE_URL}/{product.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(data["name"], product.name)
+
+    def test_get_product_404(self):
+        """GET 404 Not Found"""
+        response = self.client.get(f"{BASE_URL}/{0}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # UPDATE
+
+    def test_update_product(self):
+        """PUT for update a product"""
+        product = ProductFactory()
+        response = self.client.post(BASE_URL, json=product.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        updated_product = response.get_json()
+        updated_product["description"] = "unknown"
+        response = self.client.put(f"{BASE_URL}/{updated_product['id']}", json=updated_product)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        updated_product = response.get_json()
+        self.assertEqual(updated_product["description"], "unknown")
+
+    # DELETE
+
+    def test_delete_product(self):
+        """DELETE a single product"""
+        products = self._create_products(5)
+        product_count = self.get_product_count()
+        test_product = products[0]
+        response = self.client.delete(f"{BASE_URL}/{test_product.id}")
+        self.assertEqual(response.status, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.data, "")
+
+        response = self.client.get(f"{BASE_URL}/{test_product.id}")
+        self.assertEqual(response.status, status.HTTP_404_NOT_FOUND)
+        count_new = self.get_product_count()
+        self.assertEqual(count_new, product_count - 1)
+
+    # GET ALL
+    
+    def test_get_product_list(self):
+        """Get all products"""
+        self._create_products(5)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 5)
 
     ######################################################################
     # Utility functions
